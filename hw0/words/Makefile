@@ -14,6 +14,6 @@ clean:
 	rm -f $(BINARIES)
 
 executable:
-	$(CC) $(CFLAGS) $(SOURCES) $(LIBRARIES) -o $(BINARIES)
+	$(CC) $(CFLAGS) -g $(SOURCES) $(LIBRARIES) -o $(BINARIES)
 
 default: executable
