@@ -20,6 +20,7 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
+#define PINTOS_LIST
 #ifndef PINTOS_LIST
 #error "PINTOS_LIST must be #define'd when compiling word_count_l.c"
 #endif
@@ -28,25 +29,39 @@
 
 void init_words(word_count_list_t *wclist) {
   /* TODO */
+  list_init(wclist);
 }
 
 size_t len_words(word_count_list_t *wclist) {
   /* TODO */
-  return 0;
+  return list_size(wclist);
 }
 
 word_count_t *find_word(word_count_list_t *wclist, char *word) {
   /* TODO */
+  if (wclist == NULL) return NULL;
+  struct list_elem* ptr = list_begin(wclist);
+  while (ptr != list_end(wclist)) {
+    word_count_t *temp = list_entry (ptr, word_count_t, elem);
+    if ((temp->word, word) == 0) return temp;
+    ptr = list_next(ptr);
+  }
   return NULL;
 }
 
 word_count_t *add_word(word_count_list_t *wclist, char *word) {
-  /* TODO */
+  // TODO: right here!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!11
   return NULL;
 }
 
 void fprint_words(word_count_list_t *wclist, FILE *outfile) {
   /* TODO */
+  struct list_elem* ptr = list_begin(wclist);
+  while (ptr != list_end(wclist)) {
+    word_count_t *temp = list_entry (ptr, word_count_t, elem);
+  fprintf(outfile, "word: %s\tcount: %d.\n", temp->word, temp->count);
+  ptr = list_next(ptr);
+  }
 }
 
 static bool less_list(const struct list_elem *ewc1,
