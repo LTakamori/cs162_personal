@@ -35,20 +35,43 @@
 /*
  * main - handle command line, spawning one thread per file.
  */
+struct thread_arg {
+    char *file_path;
+    word_count_list_t *count_list;
+};
+
+void *count_in_thread(void *argvs) {
+    struct thread_arg *input = (struct thread_arg *) argvs;
+    FILE *file_open = fopen(input->file_path, "r");
+    count_words(input->count_list, file_open);
+    pthread_exit(NULL);
+}
+
 int main(int argc, char *argv[]) {
-  /* Create the empty data structure. */
-  word_count_list_t word_counts;
-  init_words(&word_counts);
+    /* Create the empty data structure. */
+    word_count_list_t word_counts;
+    init_words(&word_counts);
 
-  if (argc <= 1) {
-    /* Process stdin in a single thread. */
-    count_words(&word_counts, stdin);
-  } else {
-    /* TODO */
-  }
-
-  /* Output final result of all threads' work. */
-  wordcount_sort(&word_counts, less_count);
-  fprint_words(&word_counts, stdout);
-  return 0;
+    if (argc <= 1) {
+        /* Process stdin in a single thread. */
+        count_words(&word_counts, stdin);
+    } else {
+        /* TODO */
+        int thread_num = argc - 1;
+        pthread_t thread_id[thread_num];
+        struct thread_arg arg_array[thread_num]; // Let's see if we can do this on stack
+        for (int i = 1; i < argc; i++) {
+            arg_array[i - 1].count_list = &word_counts;
+            arg_array[i - 1].file_path = argv[i];
+            pthread_create(thread_id + i - 1, NULL, count_in_thread, (void *) (arg_array + i - 1));
+        }
+        for (int i = 0; i < thread_num; i++) {
+            pthread_join(thread_id[i], NULL);
+        }
+    }
+    pthread_mutex_destroy(&word_counts.lock);
+    /* Output final result of all threads' work. */
+    wordcount_sort(&word_counts, less_count);
+    fprint_words(&word_counts, stdout);
+    return 0;
 }
