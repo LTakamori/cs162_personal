@@ -28,6 +28,9 @@ struct termios shell_tmodes;
 /* Process group id for the shell */
 pid_t shell_pgid;
 
+char *env_path[] = {"/usr/bin/", "/home/xabi/.local/bin/", "/usr/local/sbin/", "/usr/local/bin/", "/usr/sbin/", "/usr/bin:/sbin/",
+                    "/bin:/usr/games/", "/usr/local/games/", "/snap/bin/"};
+
 int cmd_exit(struct tokens *tokens);
 
 int cmd_help(struct tokens *tokens);
@@ -37,6 +40,10 @@ int cmd_cd(struct tokens *tokens);
 int cmd_pwd(struct tokens *tokens);
 
 void exe_program(struct tokens *tokens);
+
+void path_resol(char *path);
+
+bool file_exist(char* file_path);
 
 /* Built-in command functions take token array (see parse.h) and return int */
 typedef int cmd_fun_t(struct tokens *tokens);
@@ -92,6 +99,34 @@ int cmd_pwd(struct tokens *tokens) {
     }
 }
 
+bool file_exist(char* file_path) {
+    FILE *file;
+    file = fopen(file_path, "r");
+    if (file != NULL){
+        fclose(file);
+        return 1;
+    }
+    return 0;
+}
+
+
+void path_resol(char *path) {
+    char temp[4096];
+    if (path[0] == '.' || path[0] == '/') {
+        return;
+    } else {
+        for (int i = 0; i < (sizeof(env_path) / sizeof(env_path[0])); i++) {
+            strcpy(temp, env_path[i]);
+            strcpy(temp + strlen(env_path[i]), path);
+            if (file_exist(temp)) {
+                strcpy(path, temp);
+                return;
+            }
+            temp[0] = '\0';
+        }
+    }
+}
+
 void exe_program(struct tokens *tokens) {
     int argc = tokens_get_length(tokens);
     if (argc == 0) return;
@@ -99,10 +134,11 @@ void exe_program(struct tokens *tokens) {
     for (int i = 0; i < argc; i++) {
         argv[i] = tokens_get_token(tokens, i);
     }
+    path_resol(argv[0]);
     argv[argc] = NULL;
     int pid = fork();
     if (pid == 0) {
-        execv(tokens_get_token(tokens, 0), argv);
+        execv(argv[0], argv);
         exit(0);
     } else if (pid > 0) {
         int child_stat;
@@ -115,6 +151,7 @@ void exe_program(struct tokens *tokens) {
         printf("Failed to fork a child\n");
     }
 }
+
 
 /* Looks up the built-in command, if it exists. */
 int lookup(char cmd[]) {
