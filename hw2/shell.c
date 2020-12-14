@@ -36,6 +36,8 @@ int cmd_cd(struct tokens *tokens);
 
 int cmd_pwd(struct tokens *tokens);
 
+void exe_program(struct tokens *tokens);
+
 /* Built-in command functions take token array (see parse.h) and return int */
 typedef int cmd_fun_t(struct tokens *tokens);
 
@@ -50,7 +52,7 @@ fun_desc_t cmd_table[] = {
         {cmd_help, "?",    "show this help menu"},
         {cmd_exit, "exit", "exit the command shell"},
         {cmd_cd,   "cd",   "changes the current working directory to that directory."},
-        {cmd_pwd, "pwd", "prints the current working directory to standard output"},
+        {cmd_pwd,  "pwd",  "prints the current working directory to standard output"},
 };
 
 /* Prints a helpful description for the given command */
@@ -90,6 +92,29 @@ int cmd_pwd(struct tokens *tokens) {
     }
 }
 
+void exe_program(struct tokens *tokens) {
+    int argc = tokens_get_length(tokens);
+    if (argc == 0) return;
+    char *argv[argc + 1];
+    for (int i = 0; i < argc; i++) {
+        argv[i] = tokens_get_token(tokens, i);
+    }
+    argv[argc] = NULL;
+    int pid = fork();
+    if (pid == 0) {
+        execv(tokens_get_token(tokens, 0), argv);
+        exit(0);
+    } else if (pid > 0) {
+        int child_stat;
+        wait(&child_stat);
+//        printf("Child status %d\n", child_stat);
+        if (child_stat != 0) {
+            printf("Some error happened when running the program %s\n", tokens_get_token(tokens, 0));
+        }
+    } else {
+        printf("Failed to fork a child\n");
+    }
+}
 
 /* Looks up the built-in command, if it exists. */
 int lookup(char cmd[]) {
@@ -145,8 +170,9 @@ int main(unused int argc, unused char *argv[]) {
         if (fundex >= 0) {
             cmd_table[fundex].fun(tokens);
         } else {
-            /* REPLACE this to run commands as programs. */
-            fprintf(stdout, "This shell doesn't know how to run programs.\n");
+            /* TODO: REPLACE this to run commands as programs. */
+            // fprintf(stdout, "This shell doesn't know how to run programs.\n");
+            exe_program(tokens);
         }
 
         if (shell_is_interactive)
