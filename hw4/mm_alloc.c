@@ -30,7 +30,8 @@ meta find_free_block(meta base, size_t size)
 }
 
 meta find_tail(meta base) {
-  while (base != NULL) {
+  if (base == NULL) return NULL;
+  while (base->next != NULL) {
     base = base->next;
   }
   return base;
@@ -40,7 +41,7 @@ meta request_block(size_t size) {
   meta tail = find_tail(global_base);
   meta block = sbrk(0);
   sbrk(size + sizeof(struct meta_data));
-  tail->next = block;
+  if (tail != NULL) tail->next = block;
   block->next = NULL;
   block->size = size;
   block->free = 0;
@@ -55,6 +56,9 @@ void* mm_malloc(size_t size)
   if (res != NULL) return res;
   else {
     res = request_block(size);
+    if (global_base == NULL) {
+      global_base = get_meta_block(res);
+    }
     return res;
   }
   return NULL;
